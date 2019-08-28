@@ -1,0 +1,179 @@
+service: pipeline 
+
+frameworkVersion: ">=1.50.0"
+
+provider:
+  name: aws
+  stackName: ${self:custom.config.stack_name}-${self:custom.stage}
+  stage: ${self:custom.stage}
+  region: us-east-1
+
+custom:
+  stage: ${opt:env, 'dev'}
+  config:
+    branch: master
+    github_oauth_token: ${opt:github-token, env:GITHUB_TOKEN}
+    json_path: $.ref
+    match_equals: refs/heads/{Branch}
+    repo_owner: ChristianAvila
+    stack_name: ${self:service}-${self:custom.stage}
+
+resources:
+  Resources:
+    ArtifactsS3Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: BucketOwnerFullControl
+    
+    # Codebuild
+    CodeBuildPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        Path: /
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            - cloudformation:*
+            - s3:*
+            - dynamodb:*
+            Resource: '*'
+    CodeBuildRole:
+      Type: AWS::IAM::Role
+      Properties:
+        MaxSessionDuration: 3600
+        AssumeRolePolicyDocument:
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        ManagedPolicyArns:
+        - Ref: CodeBuildPolicy
+    CodeBuildProject:
+      Type: AWS::CodeBuild::Project
+      Properties:
+        Name: pipeline-deploy
+        ServiceRole:
+          Fn::GetAtt:
+          - CodeBuildRole
+          - Arn
+        Artifacts:
+          Type: CODEPIPELINE
+        BadgeEnabled: false
+        Environment:
+          Type: LINUX_CONTAINER
+          ComputeType: BUILD_GENERAL1_SMALL
+          Image: aws/codebuild/standard:2.0
+          EnvironmentVariables:
+          - Name: STAGE
+            Type: PLAINTEXT
+            Value: ${self:custom.stage}
+        Source:
+          Type: CODEPIPELINE
+          BuildSpec: buildspec.yml
+        TimeoutInMinutes: 30
+        Tags:
+        - Key: managed-by
+          Value: serverless
+
+    # CodePipeline
+    CodePipelinePolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        Path: /
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            - codebuild:*
+            - codepipeline:*
+            Resource: '*'
+    CodePipelineRole:
+      Type: AWS::IAM::Role
+      Properties:
+        MaxSessionDuration: 3600
+        AssumeRolePolicyDocument:
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        ManagedPolicyArns:
+        - Ref: CodePipelinePolicy
+    Pipeline:
+      Type: AWS::CodePipeline::Pipeline
+      Properties:
+        RoleArn:
+          Fn::GetAtt:
+          - CodePipelineRole
+          - Arn
+        Name: summit-${self:custom.stage}
+        ArtifactStore:
+          Type: S3
+          Location: 
+            Ref: ArtifactsS3Bucket
+        Stages:
+        - Name: Source
+          Actions:
+          - Name: source
+            ActionTypeId:
+              Category: Source
+              Owner: ThirdParty
+              Version: '1'
+              Provider: GitHub
+            Configuration:
+              Owner: ${self:custom.config.repo_owner}
+              Repo: aws-summit-mexico
+              Branch: ${self:custom.config.branch}
+              OAuthToken: ${self:custom.config.github_oauth_token}
+              PollForSourceChanges: false
+            OutputArtifacts:
+            - Name: source
+            RunOrder: 1
+        - Name: Deploy
+          Actions:
+          - Name: deploy
+            RunOrder: 1
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: '1'
+              Provider: CodeBuild
+            Configuration:
+              ProjectName:
+                Ref: CodeBuildProject
+            InputArtifacts:
+            - Name: source
+
+    Webhook:
+      Type: AWS::CodePipeline::Webhook      
+      Properties:
+        Name: summit-${self:custom.stage}
+        Authentication: GITHUB_HMAC
+        AuthenticationConfiguration:
+          SecretToken: ${self:custom.config.github_oauth_token}
+        Filters:
+        - JsonPath: ${self:custom.config.json_path}
+          MatchEquals: ${self:custom.config.match_equals}
+        TargetPipeline: 
+          Ref: Pipeline
+        TargetAction: source
+        TargetPipelineVersion: 
+          Fn::GetAtt: 
+            - Pipeline
+            - Version
+        RegisterWithThirdParty: true
+
+  Outputs:
+    ArtifactsS3Bucket:
+      Value:
+        Ref: ArtifactsS3Bucket
+      Export:
+        Name: ArtifactsS3Bucket
