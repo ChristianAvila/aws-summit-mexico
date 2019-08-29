@@ -21,6 +21,8 @@ Resources:
         Value: ${self:custom.stage}
       - Key: managed-by
         Value: serverless
+      - Key: demo
+        Value: aws-summit
 
 Outputs:
   DynamoDBTableArn:
