@@ -26,7 +26,7 @@ serverless deploy --stage dev --verbose
 
 ## Uninstall
 
-Update `buildspec.yaml` to remove serverless services and then you can save remove the initial pipeline
+Clean up all objects form artifacts buckets, update `buildspec.yaml` to remove serverless services and then you can save remove the initial pipeline
 
 ```sh
 serverless remove --stage dev --verbose

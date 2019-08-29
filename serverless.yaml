@@ -4,12 +4,12 @@ frameworkVersion: '>=1.50.0'
 
 provider:
   name: aws
-  stackName: ${self:custom.config.stack_name}-${self:custom.stage}
+  stackName: ${self:custom.config.stack_name}
   stage: ${self:custom.stage}
-  region: us-east-1
+  region: us-east-2
 
 custom:
-  stage: ${opt:env, 'dev'}
+  stage: ${opt:stage, 'dev'}
   config:
     github_oauth_token: ${opt:github-token, env:GITHUB_TOKEN}
     json_path: $.ref
