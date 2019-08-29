@@ -59,7 +59,7 @@ resources:
     CodeBuildProject:
       Type: AWS::CodeBuild::Project
       Properties:
-        Name: pipeline-deploy
+        Name: summit-deploy-${self:custom.stage}
         ServiceRole:
           Fn::GetAtt:
           - CodeBuildRole
@@ -179,4 +179,4 @@ resources:
       Value:
         Ref: ArtifactsS3Bucket
       Export:
-        Name: ArtifactsS3Bucket
+        Name: ArtifactsS3Bucket-${self:custom.stage}
