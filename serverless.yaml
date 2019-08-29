@@ -77,7 +77,7 @@ resources:
             Value: ${self:custom.stage}
         Source:
           Type: CODEPIPELINE
-          BuildSpec: buildspec.yml
+          BuildSpec: buildspec.yaml
         TimeoutInMinutes: 30
         Tags:
         - Key: managed-by
