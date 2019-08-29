@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  DynamoDbTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.config.table_name}
+      AttributeDefinitions:
+      - AttributeName: Key
+        AttributeType: S
+      KeySchema:
+      - AttributeName: Key
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: ${self:custom.config.${self:custom.stage}.read_capacity_units}
+        WriteCapacityUnits: ${self:custom.config.${self:custom.stage}.write_capacity_units}
+      Tags:
+      - Key: Name
+        Value: ${self:custom.config.table_name}
+      - Key: environment
+        Value: ${self:custom.stage}
+      - Key: managed-by
+        Value: serverless
+
+Outputs:
+  DynamoDBTableArn:
+    Description: DynamoDB ARN
+    Value:
+      Fn::GetAtt:
+      - DynamoDbTable
+      - Arn

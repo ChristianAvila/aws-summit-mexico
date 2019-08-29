@@ -1,6 +1,6 @@
 service: pipeline 
 
-frameworkVersion: ">=1.50.0"
+frameworkVersion: '>=1.50.0'
 
 provider:
   name: aws
@@ -11,12 +11,15 @@ provider:
 custom:
   stage: ${opt:env, 'dev'}
   config:
-    branch: master
     github_oauth_token: ${opt:github-token, env:GITHUB_TOKEN}
     json_path: $.ref
     match_equals: refs/heads/{Branch}
     repo_owner: ChristianAvila
     stack_name: ${self:service}-${self:custom.stage}
+    dev:
+      branch: develop
+    prod:
+      branch: master
 
 resources:
   Resources:
@@ -131,7 +134,7 @@ resources:
             Configuration:
               Owner: ${self:custom.config.repo_owner}
               Repo: aws-summit-mexico
-              Branch: ${self:custom.config.branch}
+              Branch: ${self:custom.config.${self:custom.stage}.branch}
               OAuthToken: ${self:custom.config.github_oauth_token}
               PollForSourceChanges: false
             OutputArtifacts:

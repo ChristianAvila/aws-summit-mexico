@@ -1,0 +1,24 @@
+service: infrastructure 
+
+frameworkVersion: '>=1.50.0'
+
+provider:
+  name: aws
+  stackName: ${self:custom.config.stack_name}-${self:custom.stage}
+  stage: ${self:custom.stage}
+  region: us-east-1
+
+custom:
+  stage: ${opt:env, 'dev'}
+  config:
+    stack_name: ${self:service}-${self:custom.stage}
+    table_name: summit-table
+    dev:
+      read_capacity_units: 1
+      write_capacity_units: 1
+    prod:
+      read_capacity_units: 2
+      write_capacity_units: 2
+
+resources:
+- ${file(table.yaml)}
