@@ -4,7 +4,7 @@ Resources:
   DynamoDbTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: ${self:custom.config.table_name}
+      TableName: ${self:custom.config.table_name}-${self:custom.stage}
       AttributeDefinitions:
       - AttributeName: Key
         AttributeType: S
