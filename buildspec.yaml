@@ -9,3 +9,4 @@ phases:
   build:
     commands:
       - serverless deploy --stage {STAGE} --verbose --force
+      - (cd ./infrastructure && serverless deploy --stage {STAGE} --verbose --force)
